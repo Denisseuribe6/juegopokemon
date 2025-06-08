@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Pokémon</title>
+    
+    <!-- Tailwind CSS para un diseño moderno y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts para una tipografía agradable -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos personalizados para complementar Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Estilo para los botones de respuesta con transiciones suaves */
+        .answer-btn {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .answer-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilos para las respuestas correctas e incorrectas */
+        .correct {
+            background-color: #22c55e !important; /* Verde Tailwind */
+            color: white !important;
+            border-color: #16a34a !important;
+        }
+
+        .incorrect {
+            background-color: #ef4444 !important; /* Rojo Tailwind */
+            color: white !important;
+            border-color: #dc2626 !important;
+        }
+
+        /* Animación para la aparición de los elementos */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        #feedback-modal > div {
+             animation: modalIn 0.3s ease-out forwards;
+        }
+
+    </style>
+</head>
+<body class="bg-blue-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Contenedor principal de la aplicación -->
+    <div id="app-container" class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8">
+
+        <!-- Pantalla de Inicio -->
+        <div id="start-screen" class="text-center">
+            <img src="https://assets.pokemon.com/assets/cms2/img/pokedex/full/025.png" alt="Pikachu saludando" class="w-40 h-40 mx-auto mb-4" onerror="this.onerror=null;this.src='https://placehold.co/160x160/ffcc00/000000?text=Pikachu';">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Trivia Pokémon</h1>
+            <p class="text-gray-600 mb-6">¿Cuánto sabes del mundo Pokémon? ¡Demuéstralo!</p>
+            <button id="start-btn" class="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-full text-lg transition duration-300 shadow-md">
+                ¡Comenzar!
+            </button>
+        </div>
+
+        <!-- Pantalla del Quiz (oculta por defecto) -->
+        <div id="quiz-screen" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Pregunta <span id="question-number"></span>/<span id="total-questions"></span></h2>
+                <div class="text-lg font-semibold text-blue-600">Puntaje: <span id="score">0</span></div>
+            </div>
+            <div id="question-container" class="text-center">
+                <img id="pokemon-image" src="" alt="Imagen de Pokémon" class="w-48 h-48 mx-auto mb-5 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/192x192/cccccc/333333?text=Pok%C3%A9mon';">
+                <p id="question-text" class="text-xl text-gray-700 font-semibold mb-6 min-h-[56px]"></p>
+                <div id="answer-buttons" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Botones de respuesta generados por JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Resultados (oculta por defecto) -->
+        <div id="results-screen" class="hidden text-center">
+             <img id="result-image" src="" alt="Pokémon de celebración" class="w-40 h-40 mx-auto mb-4">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">¡Juego Terminado!</h2>
+            <p class="text-2xl text-gray-700 mb-4">Tu puntaje final es:</p>
+            <p id="final-score" class="text-6xl font-extrabold text-blue-600 mb-6"></p>
+            <p id="feedback-message" class="text-lg text-gray-600 mb-8 px-4"></p>
+            <button id="restart-btn" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 shadow-md">
+                Jugar de Nuevo
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de Feedback (NUEVO) -->
+    <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-8 text-center max-w-sm mx-auto">
+            <h3 id="feedback-title" class="text-3xl font-bold mb-3"></h3>
+            <p id="feedback-text" class="text-gray-700 mb-6"></p>
+            <button id="next-question-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full">
+                Siguiente
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- ELEMENTOS DEL DOM ---
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const questionNumberEl = document.getElementById('question-number');
+        const totalQuestionsEl = document.getElementById('total-questions');
+        const scoreEl = document.getElementById('score');
+        const pokemonImageEl = document.getElementById('pokemon-image');
+        const questionTextEl = document.getElementById('question-text');
+        const answerButtonsEl = document.getElementById('answer-buttons');
+        const finalScoreEl = document.getElementById('final-score');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const resultImageEl = document.getElementById('result-image');
+        
+        // --- Elementos del Modal (NUEVO) ---
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackTitleEl = document.getElementById('feedback-title');
+        const feedbackTextEl = document.getElementById('feedback-text');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+
+
+        // --- PREGUNTAS DEL QUIZ (Ahora 15) ---
+        const questions = [
+            { question: '¿Cuál de estos Pokémon es el inicial de tipo planta de la región de Kanto?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/001.png', answers: [{ text: 'Squirtle', correct: false }, { text: 'Bulbasaur', correct: true }, { text: 'Charmander', correct: false }, { text: 'Pikachu', correct: false }] },
+            { question: '¿Qué evolución de Eevee es de tipo Psíquico?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/196.png', answers: [{ text: 'Vaporeon', correct: false }, { text: 'Jolteon', correct: false }, { text: 'Flareon', correct: false }, { text: 'Espeon', correct: true }] },
+            { question: '¿Cuál es el nombre del equipo de villanos principal en la región de Kanto?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/052.png', answers: [{ text: 'Equipo Magma', correct: false }, { text: 'Equipo Galaxia', correct: false }, { text: 'Equipo Rocket', correct: true }, { text: 'Equipo Plasma', correct: false }] },
+            { question: '¿Qué Pokémon legendario es conocido como el guardián de los mares?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/249.png', answers: [{ text: 'Lugia', correct: true }, { text: 'Ho-Oh', correct: false }, { text: 'Kyogre', correct: false }, { text: 'Articuno', correct: false }] },
+            { question: '¿Qué objeto se necesita para evolucionar a Onix en Steelix?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/208.png', answers: [{ text: 'Piedra Fuego', correct: false }, { text: 'Revestimiento Metálico', correct: true }, { text: 'Piedra Trueno', correct: false }, { text: 'Roca del Rey', correct: false }] },
+            { question: '¿Cuál es el Pokémon número 151 en la Pokédex Nacional?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/151.png', answers: [{ text: 'Mewtwo', correct: false }, { text: 'Dragonite', correct: false }, { text: 'Snorlax', correct: false }, { text: 'Mew', correct: true }] },
+            { question: '¿Qué tipo es inmune a los ataques de tipo Fantasma?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/302.png', answers: [{ text: 'Normal', correct: true }, { text: 'Lucha', correct: false }, { text: 'Psíquico', correct: false }, { text: 'Siniestro', correct: false }] },
+            { question: '¿Cuál de estos NO es una evolución de Tyrogue?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/236.png', answers: [{ text: 'Hitmonlee', correct: false }, { text: 'Hitmonchan', correct: false }, { text: 'Hitmontop', correct: false }, { text: 'Machamp', correct: true }] },
+            { question: '¿Cómo se llama el profesor Pokémon de la región de Johto?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/161.png', answers: [{ text: 'Profesor Oak', correct: false }, { text: 'Profesor Elm', correct: true }, { text: 'Profesor Birch', correct: false }, { text: 'Profesor Rowan', correct: false }] },
+            { question: '¿Qué Pokémon es conocido por cantar una melodía que duerme a quien la escucha?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/039.png', answers: [{ text: 'Clefairy', correct: false }, { text: 'Chansey', correct: false }, { text: 'Jigglypuff', correct: true }, { text: 'Wigglytuff', correct: false }] },
+            { question: '¿Cuál es el inicial de tipo Fuego de la región de Sinnoh?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/390.png', answers: [{ text: 'Turtwig', correct: false }, { text: 'Piplup', correct: false }, { text: 'Chimchar', correct: true }, { text: 'Starly', correct: false }] },
+            { question: '¿Qué Pokémon fue el primero en Mega-Evolucionar en el anime?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/448.png', answers: [{ text: 'Charizard', correct: false }, { text: 'Lucario', correct: true }, { text: 'Blaziken', correct: false }, { text: 'Mewtwo', correct: false }] },
+            { question: '¿Qué Pokémon tiene 28 formas diferentes, basadas en el alfabeto?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/201.png', answers: [{ text: 'Ditto', correct: false }, { text: 'Smeargle', correct: false }, { text: 'Unown', correct: true }, { text: 'Kecleon', correct: false }] },
+            { question: '¿Cuál de estos Pokémon es de tipo Fantasma/Hada?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/778.png', answers: [{ text: 'Gardevoir', correct: false }, { text: 'Gengar', correct: false }, { text: 'Clefable', correct: false }, { text: 'Mimikyu', correct: true }] },
+            { question: '¿Qué fósil se debe revivir para obtener a Omanyte?', image: 'https://assets.pokemon.com/assets/cms2/img/pokedex/full/138.png', answers: [{ text: 'Fósil Domo', correct: false }, { text: 'Fósil Hélix', correct: true }, { text: 'Ámbar Viejo', correct: false }, { text: 'Fósil Raíz', correct: false }] }
+        ];
+
+        // --- ESTADO DEL JUEGO ---
+        let currentQuestionIndex;
+        let score;
+        let shuffledQuestions;
+
+        // --- FUNCIONES DEL JUEGO ---
+
+        function startGame() {
+            shuffledQuestions = questions.sort(() => Math.random() - 0.5);
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreEl.innerText = score;
+            totalQuestionsEl.innerText = shuffledQuestions.length;
+            startScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            const currentQuestion = shuffledQuestions[currentQuestionIndex];
+            questionNumberEl.innerText = currentQuestionIndex + 1;
+            pokemonImageEl.src = currentQuestion.image;
+            questionTextEl.innerText = currentQuestion.question;
+
+            currentQuestion.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.innerText = answer.text;
+                button.classList.add('answer-btn', 'w-full', 'bg-white', 'hover:bg-gray-100', 'text-gray-800', 'font-semibold', 'py-3', 'px-4', 'border', 'border-gray-300', 'rounded-lg');
+                if (answer.correct) {
+                    button.dataset.correct = answer.correct;
+                }
+                button.addEventListener('click', selectAnswer);
+                answerButtonsEl.appendChild(button);
+            });
+        }
+        
+        function resetState() {
+            feedbackModal.classList.add('hidden');
+            while (answerButtonsEl.firstChild) {
+                answerButtonsEl.removeChild(answerButtonsEl.firstChild);
+            }
+        }
+
+        /**
+         * Lógica al seleccionar una respuesta.
+         * Deshabilita botones, muestra estilos y prepara el modal de feedback.
+         */
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.correct === 'true';
+
+            // Marcar todas las respuestas y deshabilitarlas
+            Array.from(answerButtonsEl.children).forEach(button => {
+                if (button.dataset.correct === 'true') {
+                    button.classList.add('correct');
+                } else {
+                    button.classList.add('incorrect');
+                }
+                button.disabled = true;
+            });
+
+            // Preparar y mostrar el modal de feedback
+            if (isCorrect) {
+                score++;
+                scoreEl.innerText = score;
+                feedbackTitleEl.innerText = "¡Correcto!";
+                feedbackTitleEl.className = "text-3xl font-bold mb-3 text-green-500";
+                feedbackTextEl.innerText = "¡Excelente! Has elegido la respuesta correcta.";
+            } else {
+                feedbackTitleEl.innerText = "¡Incorrecto!";
+                feedbackTitleEl.className = "text-3xl font-bold mb-3 text-red-500";
+                const correctAnswer = shuffledQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+                feedbackTextEl.innerText = `La respuesta correcta era "${correctAnswer}". ¡Sigue aprendiendo!`;
+            }
+            
+            feedbackModal.classList.remove('hidden');
+        }
+
+        /**
+         * Mueve el juego a la siguiente pregunta o a la pantalla de resultados.
+         */
+        function moveToNext() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < shuffledQuestions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+        
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            feedbackModal.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            resultsScreen.classList.add('fade-in');
+
+            finalScoreEl.innerText = `${score} / ${shuffledQuestions.length}`;
+
+            const scorePercentage = (score / shuffledQuestions.length) * 100;
+            let feedback = '';
+            let imageSrc = '';
+
+            if (scorePercentage === 100) {
+                feedback = "¡Maestro Pokémon! Tu conocimiento es legendario. ¡Has demostrado ser un verdadero experto!";
+                imageSrc = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/150.png"; // Mewtwo
+            } else if (scorePercentage >= 70) {
+                feedback = "¡Excelente, Entrenador! Estás muy cerca de ser un Maestro Pokémon. ¡Sigue así!";
+                imageSrc = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/006.png"; // Charizard
+            } else if (scorePercentage >= 40) {
+                feedback = "¡Buen trabajo! Tienes un buen conocimiento base. ¡Cada batalla te hace más fuerte!";
+                imageSrc = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/054.png"; // Psyduck
+            } else {
+                feedback = "¡No te rindas! Todo gran viaje comienza con un primer paso. ¡Sigue aprendiendo y volverás más fuerte!";
+                imageSrc = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/129.png"; // Magikarp
+            }
+
+            feedbackMessageEl.innerText = feedback;
+            resultImageEl.src = imageSrc;
+            resultImageEl.onerror = () => { resultImageEl.src = 'https://placehold.co/160x160/cccccc/333333?text=Pok%C3%A9mon'; };
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+        nextQuestionBtn.addEventListener('click', moveToNext); // (NUEVO)
+
+    </script>
+</body>
+</html>
+
